@@ -321,9 +321,24 @@
             });
         };
 
+        // ▼▼▼ 追加：書きかけ保存機能 ▼▼▼
+        
+        // 1. ページを開いた時、保存していたメモを復元
+        const savedText = localStorage.getItem('memo_draft');
+        if (savedText) {
+            memoArea.value = savedText;
+        }
+
+        // 2. 文字を打つたびにスマホに自動保存
+        memoArea.addEventListener('input', function() {
+            localStorage.setItem('memo_draft', memoArea.value);
+        });
+
+        // ▲▲▲ 追加ここまで ▲▲▲
         // 起動時に描画
         render();
 
     </script>
 </body>
+
 </html>
