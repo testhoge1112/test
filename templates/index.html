@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Memo</title>
+    <style>
+        /* === デザイン部分 (CSS) === */
+        :root {
+            --bg-color: #f0f0f5;
+            --paper-color: #ffffff;
+            --btn-border: #333;
+            --active-color: #ffcc00; /* ONの時の色 */
+            --danger-color: #ff3b30;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* スマホ画面の枠 */
+        .app-container {
+            width: 100%;
+            max-width: 390px; /* iPhone 13 幅 */
+            background-color: var(--paper-color);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh; /* 画面の高さに合わせる */
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 18px;
+            color: #555;
+            margin: 0 0 15px 0;
+        }
+
+        /* メインエリア：左（メモ）と右（ボタン） */
+        .main-area {
+            display: flex;
+            gap: 15px;
+            flex-grow: 1; /* 残りの高さを埋める */
+            overflow: hidden;
+        }
+
+        /* 左側：四角いメモ帳 */
+        .memo-box {
+            flex: 1; /* 横幅いっぱいに広がる */
+            border: 2px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            font-size: 16px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        /* 右側：丸いボタンエリア */
+        .button-area {
+            width: 70px; /* 幅固定 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            overflow-y: auto; /* ボタンが増えたらスクロール */
+        }
+
+        /* ボタンのデザイン */
+        .circle-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--btn-border);
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+            position: relative;
+            flex-shrink: 0; /* つぶれないようにする */
+            word-break: break-all;
+        }
+
+        /* ONの状態 */
+        .circle-btn.active {
+            background-color: var(--active-color);
+        }
+
+        /* 編集モード時のスタイル */
+        .editing .circle-btn {
+            border-style: dashed;
+            animation: shake 0.3s infinite alternate; /* ふるえるアニメーション */
+        }
+        @keyframes shake { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
+
+        /* 削除バッジ（編集中のみ表示） */
+        .del-badge {
+            display: none;
+            position: absolute;
+            top: -5px; right: -5px;
+            width: 20px; height: 20px;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 20px;
+            text-align: center;
+        }
+        .editing .del-badge { display: block; }
+
+        /* 追加ボタン（編集中のみ表示） */
+        .add-btn {
+            display: none;
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            border: 2px dashed #aaa;
+            color: #aaa;
+            font-size: 24px;
+            background: none;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+        }
+        .editing .add-btn { display: flex; }
+
+        /* 下部の操作パネル */
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+
+        button.text-btn {
+            background: none;
+            border: none;
+            color: #007AFF;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        button.save-btn {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button.save-btn:active { transform: scale(0.95); }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="app">
+        <h1 id="date-label">----/--/--</h1>
+
+        <div class="main-area">
+            <div class="memo-box">
+                <textarea id="memo" placeholder="メモ"></textarea>
+            </div>
+
+            <div class="button-area" id="btn-list">
+                </div>
+        </div>
+
+        <div class="controls">
+            <button class="text-btn" id="edit-mode">ボタン編集</button>
+            <span id="status" style="font-size:12px; color:#888;"></span>
+            <button class="save-btn" id="save">記録</button>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // ↓↓↓ GASのウェブアプリURLをここに貼る ↓↓↓
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbybuoTzhHiQ-JG6fU9iu4IdT7nfokaAVuQM5BFJQTg0HvqKfQSY8nSUf2-H7Q08PQs0bQ/exec";
+        // ==========================================
+
+        const app = document.getElementById('app');
+        const btnList = document.getElementById('btn-list');
+        const memoArea = document.getElementById('memo');
+        const dateLabel = document.getElementById('date-label');
+        const statusLabel = document.getElementById('status');
+        
+        // 日付表示
+        const d = new Date();
+        dateLabel.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+
+        // データ管理用
+        let isEditing = false;
+        let buttons = JSON.parse(localStorage.getItem('memo_buttons')) || [
+            { id: 1, text: "朝", on: false },
+            { id: 2, text: "昼", on: false },
+            { id: 3, text: "夜", on: false }
+        ];
+
+        // 画面を描画する関数
+        function render() {
+            btnList.innerHTML = ""; // 一旦クリア
+            
+            buttons.forEach((btn, idx) => {
+                const div = document.createElement('div');
+                div.className = `circle-btn ${btn.on ? 'active' : ''}`;
+                div.innerHTML = `<span>${btn.text}</span>`;
+                
+                // 削除バッジ（編集中のみ）
+                const del = document.createElement('div');
+                del.className = "del-badge";
+                del.textContent = "×";
+                del.onclick = (e) => {
+                    e.stopPropagation();
+                    if(confirm("削除しますか？")) {
+                        buttons.splice(idx, 1);
+                        saveLocal();
+                        render();
+                    }
+                };
+                div.appendChild(del);
+
+                // クリック時の動作
+                div.onclick = () => {
+                    if (isEditing) {
+                        // 編集中：テキスト変更
+                        const newText = prompt("ボタンの名前を変更", btn.text);
+                        if(newText) {
+                            btn.text = newText;
+                            saveLocal();
+                            render();
+                        }
+                    } else {
+                        // 通常時：ON/OFF切り替え
+                        btn.on = !btn.on;
+                        saveLocal();
+                        render();
+                    }
+                };
+                
+                btnList.appendChild(div);
+            });
+
+            // 編集中なら追加ボタンを表示
+            if (isEditing) {
+                const addBtn = document.createElement('div');
+                addBtn.className = "add-btn";
+                addBtn.textContent = "+";
+                addBtn.onclick = () => {
+                    const name = prompt("新しいボタンの名前");
+                    if(name) {
+                        buttons.push({ id: Date.now(), text: name, on: false });
+                        saveLocal();
+                        render();
+                    }
+                };
+                btnList.appendChild(addBtn);
+            }
+        }
+
+        // ローカルストレージに保存（ブラウザ閉じても消えないように）
+        function saveLocal() {
+            localStorage.setItem('memo_buttons', JSON.stringify(buttons));
+        }
+
+        // 編集モード切替
+        document.getElementById('edit-mode').onclick = function() {
+            isEditing = !isEditing;
+            app.classList.toggle('editing', isEditing);
+            this.textContent = isEditing ? "完了" : "ボタン編集";
+            render();
+        };
+
+        // 記録ボタン（GASへ送信）
+        document.getElementById('save').onclick = function() {
+            statusLabel.textContent = "送信中...";
+            
+            const payload = {
+                memo: memoArea.value,
+                buttons: buttons
+            };
+
+            // fetchで送信 (no-corsモード)
+            fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                statusLabel.textContent = "完了！";
+                setTimeout(() => statusLabel.textContent = "", 2000);
+            })
+            .catch(err => {
+                statusLabel.textContent = "エラー";
+                alert("送信失敗");
+            });
+        };
+
+        // 起動時に描画
+        render();
+
+    </script>
+</body>
+</html>
