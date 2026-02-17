@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Memo</title>
     <style>
-        /* === デザイン部分 (CSS) === */
-        {
+        /* ▼▼▼ 追加：枠線ズレ防止 ▼▼▼ */
+        * {
             box-sizing: border-box;
         }
+
+        /* === デザイン部分 (CSS) === */
         :root {
             --bg-color: #f0f0f5;
             --paper-color: #ffffff;
@@ -202,7 +204,7 @@
 
     <script>
         // ==========================================
-        // ↓↓↓ GASのウェブアプリURLをここに貼る ↓↓↓
+        // ↓↓↓ GASのウェブアプリURL ↓↓↓
         const GAS_URL = "https://script.google.com/macros/s/AKfycbybuoTzhHiQ-JG6fU9iu4IdT7nfokaAVuQM5BFJQTg0HvqKfQSY8nSUf2-H7Q08PQs0bQ/exec";
         // ==========================================
 
@@ -223,6 +225,14 @@
             { id: 2, text: "昼", on: false },
             { id: 3, text: "夜", on: false }
         ];
+
+        // ▼▼▼ 追加：MP3を鳴らす機能 ▼▼▼
+        function playPopSound() {
+            // GitHubにアップしたファイル名 (se.mp3)
+            const audio = new Audio('se.mp3'); 
+            audio.currentTime = 0; 
+            audio.play().catch(e => console.log("再生エラー:", e));
+        }
 
         // 画面を描画する関数
         function render() {
@@ -249,6 +259,8 @@
 
                 // クリック時の動作
                 div.onclick = () => {
+                    playPopSound(); // ★★★ ここで音を鳴らす ★★★
+
                     if (isEditing) {
                         // 編集中：テキスト変更
                         const newText = prompt("ボタンの名前を変更", btn.text);
@@ -324,7 +336,7 @@
             });
         };
 
-        // ▼▼▼ 追加：書きかけ保存機能 ▼▼▼
+        // 書きかけ保存機能
         
         // 1. ページを開いた時、保存していたメモを復元
         const savedText = localStorage.getItem('memo_draft');
@@ -337,12 +349,9 @@
             localStorage.setItem('memo_draft', memoArea.value);
         });
 
-        // ▲▲▲ 追加ここまで ▲▲▲
         // 起動時に描画
         render();
 
     </script>
 </body>
-
 </html>
-
