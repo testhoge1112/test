@@ -348,10 +348,25 @@
         memoArea.addEventListener('input', function() {
             localStorage.setItem('memo_draft', memoArea.value);
         });
+// ▼▼▼ 追加：日付が変わったらボタンをリセットする機能 ▼▼▼
+        const todayStr = new Date().toLocaleDateString(); // "2026/2/17" のような文字
+        const lastDate = localStorage.getItem('memo_last_date');
 
+        // もし「最後に開いた日」と「今日」が違ったら
+        if (lastDate !== todayStr) {
+            // ボタンを全部OFFにする
+            buttons.forEach(btn => btn.on = false);
+            // メモ欄も消したい場合は下の行の // を消して有効にしてください
+            // memoArea.value = ""; localStorage.removeItem('memo_draft'); 
+            
+            saveLocal(); // 保存
+            localStorage.setItem('memo_last_date', todayStr); // 「今日開いたよ」と記録
+        }
+        
         // 起動時に描画
         render();
 
     </script>
 </body>
 </html>
+
