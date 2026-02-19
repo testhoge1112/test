@@ -5,194 +5,83 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Memo</title>
     <style>
-        /* ▼▼▼ 追加：枠線ズレ防止 ▼▼▼ */
-        * {
-            box-sizing: border-box;
-        }
-
-        /* === デザイン部分 (CSS) === */
+        * { box-sizing: border-box; }
         :root {
-            --bg-color: #f0f0f5;
-            --paper-color: #ffffff;
-            --btn-border: #333;
-            --active-color: #ffcc00; /* ONの時の色 */
-            --danger-color: #ff3b30;
+            --bg-color: #f0f0f5; --paper-color: #ffffff;
+            --btn-border: #333; --active-color: #ffcc00; --danger-color: #ff3b30;
         }
-
         body {
-            background-color: var(--bg-color);
-            margin: 0;
-            padding: 20px;
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
+            background-color: var(--bg-color); margin: 0; padding: 20px;
+            font-family: sans-serif; display: flex; justify-content: center; min-height: 100vh;
         }
-
-        /* スマホ画面の枠 */
         .app-container {
-            width: 100%;
-            max-width: 390px; /* iPhone 13 幅 */
-            background-color: var(--paper-color);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            height: 80vh; /* 画面の高さに合わせる */
+            width: 100%; max-width: 390px; background-color: var(--paper-color);
+            border-radius: 20px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column; height: 80vh;
         }
-
-        h1 {
-            text-align: center;
-            font-size: 18px;
-            color: #555;
-            margin: 0 0 15px 0;
+        
+        /* ▼▼▼ 追加：日付ナビゲーションのスタイル ▼▼▼ */
+        .header-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px;
         }
-
-        /* メインエリア：左（メモ）と右（ボタン） */
-        .main-area {
-            display: flex;
-            gap: 15px;
-            flex-grow: 1; /* 残りの高さを埋める */
-            overflow: hidden;
+        .header-nav button {
+            background: none; border: none; font-size: 20px; color: #007AFF;
+            cursor: pointer; padding: 5px 15px; font-weight: bold;
         }
+        .header-nav button:disabled { color: #ccc; cursor: default; }
+        .header-nav h1 { margin: 0; font-size: 18px; color: #555; }
+        /* ▲▲▲ 追加ここまで ▲▲▲ */
 
-        /* 左側：四角いメモ帳 */
-        .memo-box {
-            flex: 1; /* 横幅いっぱいに広がる */
-            border: 2px solid #555;
-            border-radius: 5px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        textarea {
-            width: 100%;
-            height: 100%;
-            border: none;
-            resize: none;
-            font-size: 16px;
-            outline: none;
-            font-family: inherit;
-        }
-
-        /* 右側：丸いボタンエリア */
-        .button-area {
-            width: 70px; /* 幅固定 */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            overflow-y: auto; /* ボタンが増えたらスクロール */
-        }
-
-        /* ボタンのデザイン */
+        .main-area { display: flex; gap: 15px; flex-grow: 1; overflow: hidden; }
+        .memo-box { flex: 1; border: 2px solid #555; border-radius: 5px; padding: 10px; display: flex; flex-direction: column; }
+        textarea { width: 100%; height: 100%; border: none; resize: none; font-size: 16px; outline: none; font-family: inherit; }
+        .button-area { width: 70px; display: flex; flex-direction: column; align-items: center; gap: 15px; overflow-y: auto; }
+        
         .circle-btn {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: 2px solid var(--btn-border);
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 12px;
-            font-weight: bold;
-            text-align: center;
-            cursor: pointer;
-            transition: 0.2s;
-            position: relative;
-            flex-shrink: 0; /* つぶれないようにする */
-            word-break: break-all;
+            width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--btn-border);
+            background: white; display: flex; justify-content: center; align-items: center;
+            font-size: 12px; font-weight: bold; text-align: center; cursor: pointer;
+            transition: 0.2s; position: relative; flex-shrink: 0; word-break: break-all;
         }
-
-        /* ONの状態 */
-        .circle-btn.active {
-            background-color: var(--active-color);
-        }
-
-        /* 編集モード時のスタイル */
-        .editing .circle-btn {
-            border-style: dashed;
-            animation: shake 0.3s infinite alternate; /* ふるえるアニメーション */
-        }
+        .circle-btn.active { background-color: var(--active-color); }
+        
+        .editing .circle-btn { border-style: dashed; animation: shake 0.3s infinite alternate; }
         @keyframes shake { from { transform: rotate(-2deg); } to { transform: rotate(2deg); } }
-
-        /* 削除バッジ（編集中のみ表示） */
+        
         .del-badge {
-            display: none;
-            position: absolute;
-            top: -5px; right: -5px;
-            width: 20px; height: 20px;
-            background: var(--danger-color);
-            color: white;
-            border-radius: 50%;
-            font-size: 14px;
-            line-height: 20px;
-            text-align: center;
+            display: none; position: absolute; top: -5px; right: -5px; width: 20px; height: 20px;
+            background: var(--danger-color); color: white; border-radius: 50%; font-size: 14px;
+            line-height: 20px; text-align: center;
         }
         .editing .del-badge { display: block; }
-
-        /* 追加ボタン（編集中のみ表示） */
+        
         .add-btn {
-            display: none;
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            border: 2px dashed #aaa;
-            color: #aaa;
-            font-size: 24px;
-            background: none;
-            cursor: pointer;
-            justify-content: center;
-            align-items: center;
+            display: none; width: 50px; height: 50px; border-radius: 50%; border: 2px dashed #aaa;
+            color: #aaa; font-size: 24px; background: none; cursor: pointer; justify-content: center; align-items: center;
         }
         .editing .add-btn { display: flex; }
-
-        /* 下部の操作パネル */
-        .controls {
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #ddd;
-            padding-top: 15px;
-        }
-
-        button.text-btn {
-            background: none;
-            border: none;
-            color: #007AFF;
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        button.save-btn {
-            background-color: #333;
-            color: white;
-            border: none;
-            padding: 10px 30px;
-            border-radius: 20px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+        
+        .controls { margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #ddd; padding-top: 15px; }
+        button.text-btn { background: none; border: none; color: #007AFF; font-size: 14px; cursor: pointer; }
+        button.save-btn { background-color: #333; color: white; border: none; padding: 10px 30px; border-radius: 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
         button.save-btn:active { transform: scale(0.95); }
-
     </style>
 </head>
 <body>
 
     <div class="app-container" id="app">
-        <h1 id="date-label">----/--/--</h1>
+        <div class="header-nav">
+            <button id="prev-btn">◀</button>
+            <h1 id="date-label">----/--/--</h1>
+            <button id="next-btn" disabled>▶</button>
+        </div>
 
         <div class="main-area">
             <div class="memo-box">
                 <textarea id="memo" placeholder="メモ"></textarea>
             </div>
-
-            <div class="button-area" id="btn-list">
-                </div>
+            <div class="button-area" id="btn-list"></div>
         </div>
 
         <div class="controls">
@@ -204,8 +93,8 @@
 
     <script>
         // ==========================================
-        // ↓↓↓ GASのウェブアプリURL ↓↓↓
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbybuoTzhHiQ-JG6fU9iu4IdT7nfokaAVuQM5BFJQTg0HvqKfQSY8nSUf2-H7Q08PQs0bQ/exec";
+        // ↓↓↓ 新しくデプロイしたGASのURLを貼る ↓↓↓
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzG3v5dARg29VMT_J0eFSkq_xCfZDiS4MPM72Klc_6wO7-Ej8r7MSJ-kG7OdLKjk6Ramg/exec";
         // ==========================================
 
         const app = document.getElementById('app');
@@ -213,37 +102,97 @@
         const memoArea = document.getElementById('memo');
         const dateLabel = document.getElementById('date-label');
         const statusLabel = document.getElementById('status');
-        
-        // 日付表示
-        const d = new Date();
-        dateLabel.textContent = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
 
-        // データ管理用
-        let isEditing = false;
-        let buttons = JSON.parse(localStorage.getItem('memo_buttons')) || [
+        // デフォルトのボタン構成
+        const defaultButtons = [
             { id: 1, text: "朝", on: false },
             { id: 2, text: "昼", on: false },
             { id: 3, text: "夜", on: false }
         ];
 
-        // ▼▼▼ 追加：MP3を鳴らす機能 ▼▼▼
+        let isEditing = false;
+        let buttons = [];
+        let currentDateObj = new Date(); // 現在画面に表示している日付
+        let serverData = {}; // サーバーから読み込んだ全データ
+
+        // 日付を「YYYY/MM/DD」形式にする関数
+        function formatDate(d) {
+            return d.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' });
+        }
+
+        // ▼▼▼ 追加：サーバーからデータを読み込む ▼▼▼
+        async function loadDataFromServer() {
+            statusLabel.textContent = "読込中...";
+            try {
+                // GETリクエストでスプレッドシートのデータを取得
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                
+                // データを日付ごとに整理して保存
+                data.forEach(row => {
+                    serverData[row.date] = { memo: row.memo, buttons: row.buttons };
+                });
+                
+                statusLabel.textContent = "";
+                changeDate(0); // 今日のデータを表示
+            } catch (error) {
+                statusLabel.textContent = "読込エラー";
+                console.error(error);
+                changeDate(0); // エラーでもとりあえず今日の画面は出す
+            }
+        }
+
+        // ▼▼▼ 追加：日付を切り替える機能 ▼▼▼
+        function changeDate(daysToAdd) {
+            // 日付を足し引きする
+            currentDateObj.setDate(currentDateObj.getDate() + daysToAdd);
+            const dateStr = formatDate(currentDateObj);
+            const todayStr = formatDate(new Date());
+            
+            dateLabel.textContent = dateStr;
+            
+            // 未来には行けないようにする
+            nextBtn.disabled = (dateStr === todayStr);
+
+            // 表示するデータを用意する
+            if (serverData[dateStr]) {
+                // サーバーに過去のデータがあれば表示
+                memoArea.value = serverData[dateStr].memo;
+                buttons = JSON.parse(serverData[dateStr].buttons);
+            } else {
+                // データがない場合（今日、または書いていない過去）
+                if (dateStr === todayStr) {
+                    // 今日の場合は書きかけ保存データを復元
+                    memoArea.value = localStorage.getItem('memo_draft') || "";
+                    buttons = JSON.parse(localStorage.getItem('memo_buttons')) || JSON.parse(JSON.stringify(defaultButtons));
+                } else {
+                    // 過去の空の日はリセット状態
+                    memoArea.value = "";
+                    buttons = JSON.parse(JSON.stringify(defaultButtons));
+                }
+            }
+            render();
+        }
+
+        // ◀ ▶ ボタンのイベント
+        prevBtn.onclick = () => changeDate(-1);
+        nextBtn.onclick = () => changeDate(1);
+
         function playPopSound() {
-            // GitHubにアップしたファイル名 (se.mp3)
             const audio = new Audio('se.mp3'); 
             audio.currentTime = 0; 
             audio.play().catch(e => console.log("再生エラー:", e));
         }
 
-        // 画面を描画する関数
         function render() {
-            btnList.innerHTML = ""; // 一旦クリア
-            
+            btnList.innerHTML = ""; 
             buttons.forEach((btn, idx) => {
                 const div = document.createElement('div');
                 div.className = `circle-btn ${btn.on ? 'active' : ''}`;
                 div.innerHTML = `<span>${btn.text}</span>`;
                 
-                // 削除バッジ（編集中のみ）
                 const del = document.createElement('div');
                 del.className = "del-badge";
                 del.textContent = "×";
@@ -251,36 +200,30 @@
                     e.stopPropagation();
                     if(confirm("削除しますか？")) {
                         buttons.splice(idx, 1);
-                        saveLocal();
+                        saveState();
                         render();
                     }
                 };
                 div.appendChild(del);
 
-                // クリック時の動作
                 div.onclick = () => {
-                    playPopSound(); // ★★★ ここで音を鳴らす ★★★
-
+                    playPopSound();
                     if (isEditing) {
-                        // 編集中：テキスト変更
                         const newText = prompt("ボタンの名前を変更", btn.text);
                         if(newText) {
                             btn.text = newText;
-                            saveLocal();
+                            saveState();
                             render();
                         }
                     } else {
-                        // 通常時：ON/OFF切り替え
                         btn.on = !btn.on;
-                        saveLocal();
+                        saveState();
                         render();
                     }
                 };
-                
                 btnList.appendChild(div);
             });
 
-            // 編集中なら追加ボタンを表示
             if (isEditing) {
                 const addBtn = document.createElement('div');
                 addBtn.className = "add-btn";
@@ -289,7 +232,7 @@
                     const name = prompt("新しいボタンの名前");
                     if(name) {
                         buttons.push({ id: Date.now(), text: name, on: false });
-                        saveLocal();
+                        saveState();
                         render();
                     }
                 };
@@ -297,12 +240,13 @@
             }
         }
 
-        // ローカルストレージに保存（ブラウザ閉じても消えないように）
-        function saveLocal() {
-            localStorage.setItem('memo_buttons', JSON.stringify(buttons));
+        // 今見ているのが「今日」ならスマホに状態を保存する
+        function saveState() {
+            if (dateLabel.textContent === formatDate(new Date())) {
+                localStorage.setItem('memo_buttons', JSON.stringify(buttons));
+            }
         }
 
-        // 編集モード切替
         document.getElementById('edit-mode').onclick = function() {
             isEditing = !isEditing;
             app.classList.toggle('editing', isEditing);
@@ -310,16 +254,17 @@
             render();
         };
 
-        // 記録ボタン（GASへ送信）
+        // ▼▼▼ 変更：表示中の日付（過去も含む）を指定して送信 ▼▼▼
         document.getElementById('save').onclick = function() {
             statusLabel.textContent = "送信中...";
+            const currentDisplayedDate = dateLabel.textContent;
             
             const payload = {
+                date: currentDisplayedDate, // 表示中の日付を送る
                 memo: memoArea.value,
                 buttons: buttons
             };
 
-            // fetchで送信 (no-corsモード)
             fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -329,6 +274,12 @@
             .then(() => {
                 statusLabel.textContent = "完了！";
                 setTimeout(() => statusLabel.textContent = "", 2000);
+                
+                // 送信した内容を一時データにも反映（過去の編集用）
+                serverData[currentDisplayedDate] = { 
+                    memo: memoArea.value, 
+                    buttons: JSON.stringify(buttons) 
+                };
             })
             .catch(err => {
                 statusLabel.textContent = "エラー";
@@ -336,37 +287,27 @@
             });
         };
 
-        // 書きかけ保存機能
-        
-        // 1. ページを開いた時、保存していたメモを復元
-        const savedText = localStorage.getItem('memo_draft');
-        if (savedText) {
-            memoArea.value = savedText;
-        }
-
-        // 2. 文字を打つたびにスマホに自動保存
+        // スマホへの自動書きかけ保存（今日を見ている時だけ）
         memoArea.addEventListener('input', function() {
-            localStorage.setItem('memo_draft', memoArea.value);
+            if (dateLabel.textContent === formatDate(new Date())) {
+                localStorage.setItem('memo_draft', memoArea.value);
+            }
         });
-// ▼▼▼ 追加：日付が変わったらボタンをリセットする機能 ▼▼▼
-        const todayStr = new Date().toLocaleDateString(); // "2026/2/17" のような文字
-        const lastDate = localStorage.getItem('memo_last_date');
 
-        // もし「最後に開いた日」と「今日」が違ったら
-        if (lastDate !== todayStr) {
-            // ボタンを全部OFFにする
-            buttons.forEach(btn => btn.on = false);
-            // メモ欄も消したい場合は下の行の // を消して有効にしてください
-            // memoArea.value = ""; localStorage.removeItem('memo_draft'); 
-            
-            saveLocal(); // 保存
-            localStorage.setItem('memo_last_date', todayStr); // 「今日開いたよ」と記録
+        // 日付またぎリセット処理
+        const todayStr = formatDate(new Date());
+        const lastDate = localStorage.getItem('memo_last_date');
+        if (lastDate && lastDate !== todayStr) {
+            // 今日のボタンを一旦全部OFFにする（過去には影響しない）
+            let localBtns = JSON.parse(localStorage.getItem('memo_buttons')) || defaultButtons;
+            localBtns.forEach(btn => btn.on = false);
+            localStorage.setItem('memo_buttons', JSON.stringify(localBtns));
         }
-        
-        // 起動時に描画
-        render();
+        localStorage.setItem('memo_last_date', todayStr);
+
+        // 起動時にサーバーからデータを読み込む
+        loadDataFromServer();
 
     </script>
 </body>
 </html>
-
