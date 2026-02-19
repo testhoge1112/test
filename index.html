@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Memo</title>
+    <title>My Memo & Pomodoro</title>
     <style>
         * { box-sizing: border-box; }
         :root {
@@ -15,9 +15,8 @@
             font-family: sans-serif; display: flex; justify-content: center; min-height: 100vh;
         }
         
-        /* ▼▼▼ PC向けに広くしました ▼▼▼ */
         .app-container {
-            width: 100%; max-width: 900px; /* 幅を広げました */
+            width: 100%; max-width: 900px;
             background-color: var(--paper-color);
             border-radius: 12px; padding: 30px; 
             box-shadow: 0 5px 20px rgba(0,0,0,0.05);
@@ -42,20 +41,23 @@
             justify-content: space-between;
         }
         
-        /* ▼▼▼ タイマー（見やすい横向き） ▼▼▼ */
+        /* タイマーエリア */
         .timer-side {
             width: 130px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
             background: #f8f9fa; border-radius: 10px; padding: 20px;
             border: 1px solid #eee;
         }
+        /* ▼▼▼ タイマーの数字をクリックできるように ▼▼▼ */
         .timer-display {
-            font-size: 28px; font-family: monospace; font-weight: bold; color: #333;
-            letter-spacing: 1px;
+            font-size: 32px; font-family: monospace; font-weight: bold; color: #333;
+            letter-spacing: 1px; cursor: pointer; transition: 0.2s;
+            margin-top: 10px;
         }
-        .timer-controls {
-            display: flex; gap: 15px;
-        }
+        .timer-display:hover { color: #007AFF; transform: scale(1.05); }
+        .timer-hint { font-size: 11px; color: #888; margin-bottom: 5px; }
+
+        .timer-controls { display: flex; gap: 15px; margin-top: 10px; }
         .timer-btn {
             width: 45px; height: 45px; border-radius: 50%; border: 1px solid #ccc;
             background: white; font-size: 18px; display: flex; justify-content: center; 
@@ -73,7 +75,6 @@
             line-height: 1.6;
         }
         
-        /* 右側のボタンエリア */
         .button-area { 
             width: 90px; display: flex; flex-direction: column; align-items: center; 
             gap: 15px; overflow-y: auto; padding-right: 5px;
@@ -124,7 +125,8 @@
 
         <div class="main-area">
             <div class="timer-side" id="timer-left">
-                <div class="timer-display" id="display-left">00:00</div>
+                <span class="timer-hint">集中 (クリックで設定)</span>
+                <div class="timer-display" id="display-left" onclick="editTimer('left')">25:00</div>
                 <div class="timer-controls">
                     <button class="timer-btn" onclick="startTimer('left')">▶</button>
                     <button class="timer-btn" onclick="resetTimer('left')">↻</button>
@@ -138,7 +140,8 @@
             <div class="button-area" id="btn-list"></div>
 
             <div class="timer-side" id="timer-right">
-                <div class="timer-display" id="display-right">00:00</div>
+                <span class="timer-hint">休憩 (クリックで設定)</span>
+                <div class="timer-display" id="display-right" onclick="editTimer('right')">05:00</div>
                 <div class="timer-controls">
                     <button class="timer-btn" onclick="startTimer('right')">▶</button>
                     <button class="timer-btn" onclick="resetTimer('right')">↻</button>
@@ -167,10 +170,13 @@
         const prevBtn = document.getElementById('prev-btn');
         const nextBtn = document.getElementById('next-btn');
 
-        // タイマーのプログラム
+        // ▼▼▼ カウントダウンタイマーのプログラム ▼▼▼
+        // 保存されている設定時間があれば読み込む（なければ左25分、右5分）
+        let savedTimerSettings = JSON.parse(localStorage.getItem('memo_timer_settings')) || { left: 25, right: 5 };
+
         const timers = {
-            left: { time: 0, interval: null, isRunning: false },
-            right: { time: 0, interval: null, isRunning: false }
+            left: { defaultTime: savedTimerSettings.left * 60, time: savedTimerSettings.left * 60, interval: null, isRunning: false },
+            right: { defaultTime: savedTimerSettings.right * 60, time: savedTimerSettings.right * 60, interval: null, isRunning: false }
         };
 
         function updateTimerDisplay(side) {
@@ -179,15 +185,50 @@
             document.getElementById(`display-${side}`).textContent = `${m}:${s}`;
         }
 
+        // 時間をクリックして変更する機能
+        function editTimer(side) {
+            if (timers[side].isRunning) return; // 動いている最中は変更不可
+            const currentMins = Math.floor(timers[side].defaultTime / 60);
+            const input = prompt("タイマーの時間を設定してください（分）\n例: 25", currentMins);
+            
+            if (input !== null && !isNaN(input) && input > 0) {
+                const newMins = Math.floor(input);
+                timers[side].defaultTime = newMins * 60;
+                timers[side].time = timers[side].defaultTime;
+                
+                // 次回開いた時にも設定を覚えておくように保存
+                savedTimerSettings[side] = newMins;
+                localStorage.setItem('memo_timer_settings', JSON.stringify(savedTimerSettings));
+                
+                updateTimerDisplay(side);
+            }
+        }
+
         function startTimer(side) {
             const btn = document.querySelector(`#timer-${side} .timer-btn:first-child`);
             if (timers[side].isRunning) {
+                // 一時停止
                 clearInterval(timers[side].interval);
                 btn.textContent = '▶';
             } else {
+                // 0秒ならリセットしてからスタート
+                if (timers[side].time <= 0) {
+                    timers[side].time = timers[side].defaultTime;
+                }
+                
+                // カウントダウン開始
                 timers[side].interval = setInterval(() => {
-                    timers[side].time++;
-                    updateTimerDisplay(side);
+                    if (timers[side].time > 0) {
+                        timers[side].time--;
+                        updateTimerDisplay(side);
+                    } else {
+                        // 0になった時（アラーム）
+                        clearInterval(timers[side].interval);
+                        timers[side].isRunning = false;
+                        btn.textContent = '▶';
+                        playPopSound(); 
+                        alert((side === 'left' ? "集中（左）" : "休憩（右）") + "の時間が終了しました！");
+                    }
                 }, 1000);
                 btn.textContent = '⏸';
             }
@@ -197,12 +238,17 @@
 
         function resetTimer(side) {
             clearInterval(timers[side].interval);
-            timers[side].time = 0;
+            timers[side].time = timers[side].defaultTime;
             timers[side].isRunning = false;
             document.querySelector(`#timer-${side} .timer-btn:first-child`).textContent = '▶';
             updateTimerDisplay(side);
             playPopSound();
         }
+
+        // 起動時にタイマーの表示を合わせる
+        updateTimerDisplay('left');
+        updateTimerDisplay('right');
+        // ▲▲▲ カウントダウンタイマーここまで ▲▲▲
 
         const defaultButtons = [
             { id: 1, text: "朝", on: false },
@@ -227,10 +273,10 @@
                 data.forEach(row => { serverData[row.date] = { memo: row.memo, buttons: row.buttons }; });
                 statusLabel.textContent = "";
             } catch (error) {
-                console.log("読込エラー（またはまだデータがない）:", error);
+                console.log("読込エラー:", error);
                 statusLabel.textContent = "";
             }
-            changeDate(0); // エラーでもとりあえず今日を表示する
+            changeDate(0); 
         }
 
         function changeDate(daysToAdd) {
@@ -243,7 +289,6 @@
 
             if (serverData[dateStr]) {
                 memoArea.value = serverData[dateStr].memo || "";
-                // ▼▼▼ 追加：データが壊れている時のエラー回避 ▼▼▼
                 try {
                     buttons = JSON.parse(serverData[dateStr].buttons);
                     if(!Array.isArray(buttons)) throw new Error("Not Array");
